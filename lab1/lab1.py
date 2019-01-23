@@ -27,6 +27,46 @@ def verify_generated_random(lambda_):
     print(str)
 
 
+class Observer:
+    def __init__(self, obs_time):
+        self.obs_time = obs_time
+
+
+class Arrival:
+    def __init__(self, arv_time):
+        self.arv_time = arv_time
+
+
+class Departure:
+    def __init__(self, dep_time):
+        self.dep_time = dep_time
+
+
+class DES:
+    def __init__(self, packet_length, trans_rate, sim_time):
+        self.__packet_length = packet_length
+        self.__trans_rate = trans_rate
+        self.__sim_time = sim_time
+
+    def __generate_observer_event(self, lambda_):
+        return Observer(generate_random(lambda_ * 5))
+
+    def __generate_arrival_event(self, lambda_):
+        return Arrival(generate_random(lambda_))
+
+    def __generate_observer_events(self):
+        return
+
+    def __generate_arrival_events(self):
+        return
+
+    def sim_MM1_queue(self):
+        return
+
+    def sim_MM1K_queue(self):
+        return
+
+
 def main():
     # TODO: main
     verify_generated_random(75)
