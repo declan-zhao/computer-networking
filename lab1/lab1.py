@@ -54,6 +54,9 @@ class DES:
     def __generate_packet_length(self):
         return generate_random(1/self.__packet_length_avg)
 
+    def __calculate_service_time(self, packet_length):
+        return packet_length/self.__trans_rate
+
     def __generate_observer_event(self):
         return Observer(generate_random(self.__lambda * 5))
 
@@ -126,6 +129,10 @@ class DES:
     def __insert_departure_event(self):
         return
 
+    def __calculate_metrics(self):
+        # TODO: time-average number of packets E[N], Proportion of idle Pidle
+        return
+
     def __process_events(self, events):
         if __debug__:
             print("Processing Events...\n")
@@ -134,7 +141,7 @@ class DES:
         counter_departure = 0
         counter_observer = 0
         counter_idle = 0
-        counter_dropped = 0
+        counter_dropped_packets = 0
         counter_total_packets = 0
         counter_packets_in_queue = 0
         counter_packets_in_queue_list = []
@@ -145,7 +152,16 @@ class DES:
                 counter_departure += 1
                 counter_packets_in_queue -= 1
             elif isinstance(event, Arrival):
-                pass
+                counter_total_packets += 1
+
+                if counter_packets_in_queue < self.__buffer_size:
+                    counter_arrvial += 1
+                    counter_packets_in_queue += 1
+
+                    packet_length = self.__generate_packet_length()
+                    service_time = self.__calculate_service_time(packet_length)
+                else:
+                    counter_dropped_packets += 1
             else:
                 counter_observer += 1
 
@@ -167,16 +183,16 @@ class DES:
                 "Packets in Queue Counter: %f\n"
                 "List Counter Length:      %f\n"
                 "Latest Departure Time:    %f\n"
-            ) % (counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped, counter_total_packets, counter_packets_in_queue, len(counter_packets_in_queue_list), latest_departure_time)
+            ) % (counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped_packets, counter_total_packets, counter_packets_in_queue, len(counter_packets_in_queue_list), latest_departure_time)
             print(str)
 
-        return [counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped, counter_total_packets, counter_packets_in_queue, counter_packets_in_queue_list, latest_departure_time]
+        return [counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped_packets, counter_total_packets, counter_packets_in_queue, counter_packets_in_queue_list, latest_departure_time]
 
     def sim_MM1_queue(self):
         if self.__buffer_size == float("inf"):
             self.sim_MM1K_queue()
         else:
-            print("Finite Buffer Size!\n")
+            print("Error: Finite Buffer Size!\n")
 
     def sim_MM1K_queue(self):
         observer_events = self.__generate_observer_events()
