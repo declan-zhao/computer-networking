@@ -43,8 +43,8 @@ class Departure:
 
 
 class DES:
-    def __init__(self, packet_length, trans_rate, sim_time):
-        self.__packet_length = packet_length
+    def __init__(self, packet_length_lambda, trans_rate, sim_time):
+        self.__packet_length_lambda = packet_length_lambda
         self.__trans_rate = trans_rate
         self.__sim_time = sim_time
 
@@ -54,11 +54,34 @@ class DES:
     def __generate_arrival_event(self, lambda_):
         return Arrival(generate_random(lambda_))
 
-    def __generate_observer_events(self):
-        return
+    def __generate_observer_events(self, lambda_):
+        observer_events = []
+        current_time = 0
 
-    def __generate_arrival_events(self):
-        return
+        while(True):
+            if current_time <= self.__sim_time:
+                observer_event = self.__generate_observer_event(lambda_)
+                current_time += observer_event.time
+                observer_events.append(observer_event)
+            else:
+                break
+        return observer_events
+
+    def __generate_arrival_events(self, lambda_):
+        arrival_events = []
+        current_time = 0
+
+        while(True):
+            if current_time <= self.__sim_time:
+                arrival_event = self.__generate_arrival_event(lambda_)
+                current_time += arrival_event.time
+                arrival_events.append(arrival_event)
+            else:
+                break
+        return arrival_events
+
+    def __sort_generated_events(self, observer_events, arrival_events):
+        return observer_events.append(arrival_events).sort(key=lambda event: event.time)
 
     def sim_MM1_queue(self):
         return
