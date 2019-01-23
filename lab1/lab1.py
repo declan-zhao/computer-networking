@@ -1,6 +1,7 @@
 import math
 import random
 import statistics
+from datetime import datetime
 
 
 def generate_random(lambda_):
@@ -23,7 +24,6 @@ def verify_generated_random(lambda_):
         "Actual Variance:   %f\n"
         "Expected Variance: %f\n"
     ) % (mean, expected_mean, variance, expected_variance)
-
     print(str)
 
 
@@ -43,59 +43,93 @@ class Departure:
 
 
 class DES:
-    def __init__(self, packet_length_lambda, trans_rate, sim_time, buffer_size_list=[10], rho_list=[0.5]):
-        self.__packet_length_lambda = packet_length_lambda
+    def __init__(self, packet_length_avg, trans_rate, sim_time, rho=0.5, buffer_size=float("inf")):
+        self.__packet_length_avg = packet_length_avg
         self.__trans_rate = trans_rate
         self.__sim_time = sim_time
-        self.__buffer_size_list = buffer_size_list
-        self.__rho_list = rho_list
-
-    def __calculate_lambda(self, rho):
-        return rho*self.__trans_rate/self.__packet_length_lambda
+        self.__rho = rho
+        self.__buffer_size = buffer_size
+        self.__lambda = rho*trans_rate/packet_length_avg
 
     def __generate_packet_length(self):
-        return generate_random(self.__packet_length_lambda)
+        return generate_random(1/self.__packet_length_avg)
 
-    def __generate_observer_event(self, lambda_):
-        return Observer(generate_random(lambda_ * 5))
+    def __generate_observer_event(self):
+        return Observer(generate_random(self.__lambda * 5))
 
-    def __generate_arrival_event(self, lambda_):
-        return Arrival(generate_random(lambda_))
+    def __generate_arrival_event(self):
+        return Arrival(generate_random(self.__lambda))
 
-    def __generate_observer_events(self, lambda_):
+    def __generate_observer_events(self):
+        if __debug__:
+            print("Generating Observer Events...\n")
+
         observer_events = []
         current_time = 0
+        counter = 0
 
-        while(True):
+        while True:
+            observer_event = self.__generate_observer_event()
+            current_time += observer_event.time
+
             if current_time <= self.__sim_time:
-                observer_event = self.__generate_observer_event(lambda_)
-                current_time += observer_event.time
                 observer_events.append(observer_event)
+                counter += 1
             else:
+                if __debug__:
+                    str = (
+                        "Total Observer Events Generated: %f\n"
+                        "Total Observer Simulation Time:  %f\n"
+                    ) % (counter, current_time - observer_event.time)
+                    print(str)
+
                 break
         return observer_events
 
-    def __generate_arrival_events(self, lambda_):
+    def __generate_arrival_events(self):
+        if __debug__:
+            print("Generating Arrival Events...\n")
+
         arrival_events = []
         current_time = 0
+        counter = 0
 
-        while(True):
+        while True:
+            arrival_event = self.__generate_arrival_event()
+            current_time += arrival_event.time
+
             if current_time <= self.__sim_time:
-                arrival_event = self.__generate_arrival_event(lambda_)
-                current_time += arrival_event.time
                 arrival_events.append(arrival_event)
+                counter += 1
             else:
+                if __debug__:
+                    str = (
+                        "Total Arrival Events Generated: %f\n"
+                        "Total Arrival Simulation Time:  %f\n"
+                    ) % (counter, current_time - arrival_event.time)
+                    print(str)
+
                 break
         return arrival_events
 
     def __sort_generated_events(self, observer_events, arrival_events):
-        return observer_events.append(arrival_events).sort(key=lambda event: event.time, reverse=True)
+        if __debug__:
+            print("Sorting Generated Events...\n")
 
-    def __insert_departure_event(self):
-        # TODO: gg
+        combined_events = observer_events + arrival_events
+
+        return sorted(combined_events, key=lambda event: event.time, reverse=True)
+
+    def __search_insertion_position(self):
         return
 
-    def __process_events(self, events, buffer_size):
+    def __insert_departure_event(self):
+        return
+
+    def __process_events(self, events):
+        if __debug__:
+            print("Processing Events...\n")
+
         counter_arrvial = 0
         counter_departure = 0
         counter_observer = 0
@@ -106,12 +140,12 @@ class DES:
         counter_packets_in_queue_list = []
         latest_departure_time = 0
 
-        for event in events:
+        for event in reversed(events):
             if isinstance(event, Departure):
                 counter_departure += 1
                 counter_packets_in_queue -= 1
             elif isinstance(event, Arrival):
-                # TODO: gg
+                pass
             else:
                 counter_observer += 1
 
@@ -122,26 +156,90 @@ class DES:
 
             events.pop()
 
-        return []
+        if __debug__:
+            str = (
+                "Arrival Counter:          %f\n"
+                "Departure Counter:        %f\n"
+                "Observer Counter:         %f\n"
+                "Idle Counter:             %f\n"
+                "Dropped Counter:          %f\n"
+                "Total Packets Counter:    %f\n"
+                "Packets in Queue Counter: %f\n"
+                "List Counter Length:      %f\n"
+                "Latest Departure Time:    %f\n"
+            ) % (counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped, counter_total_packets, counter_packets_in_queue, len(counter_packets_in_queue_list), latest_departure_time)
+            print(str)
+
+        return [counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped, counter_total_packets, counter_packets_in_queue, counter_packets_in_queue_list, latest_departure_time]
 
     def sim_MM1_queue(self):
-        return self.sim_MM1K_queue(float("inf"))
+        if self.__buffer_size == float("inf"):
+            self.sim_MM1K_queue()
+        else:
+            print("Finite Buffer Size!\n")
 
     def sim_MM1K_queue(self):
-        for buffer_size in self.__buffer_size_list:
-            for rho in self.__rho_list:
-                lambda_ = self.__calculate_lambda(rho)
-                observer_events = self.__generate_observer_events(lambda_)
-                arrival_events = self.__generate_arrival_events(lambda_)
-                sorted_events = self.__sort_generated_events(
-                    observer_events, arrival_events)
-                result = self.__process_events(sorted_events, buffer_size)
-        return
+        observer_events = self.__generate_observer_events()
+        arrival_events = self.__generate_arrival_events()
+        sorted_events = self.__sort_generated_events(
+            observer_events, arrival_events)
+        result = self.__process_events(sorted_events)
 
 
 def main():
-    # TODO: main
     verify_generated_random(75)
+
+    packet_length_avg = 2000
+    trans_rate = 1000000
+    sim_time = 1000
+
+    # infinite buffer size
+    rho_list_inf = [0.5]
+
+    for rho in rho_list_inf:
+        start_time = datetime.now().time()
+        str = (
+            "Simulation with\n"
+            "Infinite Buffer Size\n"
+            "Rho: %f\n"
+            "Running, Start Time: %s\n"
+        ) % (rho, start_time)
+        print(str)
+
+        DES_inf = DES(packet_length_avg, trans_rate, sim_time, rho)
+        DES_inf.sim_MM1_queue()
+
+        end_time = datetime.now().time()
+        str = (
+            "Complete, End Time: %s\n\n"
+        ) % (end_time)
+        print(str)
+
+    # finite buffer size
+    buffer_size_list = [10]
+    rho_list_finite = [0.5]
+
+    for buffer_size in buffer_size_list:
+        for rho in rho_list_finite:
+            start_time = datetime.now().time()
+            str = (
+                "Simulation with\n"
+                "Buffer Size: %f\n"
+                "Rho:         %f\n"
+                "Running, Start Time: %s\n"
+            ) % (buffer_size, rho, start_time)
+            print(str)
+
+            DES_finite = DES(packet_length_avg, trans_rate,
+                             sim_time, rho, buffer_size)
+            DES_finite.sim_MM1K_queue()
+
+            end_time = datetime.now().time()
+            str = (
+                "Complete, End Time: %s\n\n"
+            ) % (end_time)
+            print(str)
+
     return
 
 
