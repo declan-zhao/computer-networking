@@ -28,18 +28,18 @@ def verify_generated_random(lambda_):
 
 
 class Observer:
-    def __init__(self, obs_time):
-        self.obs_time = obs_time
+    def __init__(self, time):
+        self.time = time
 
 
 class Arrival:
-    def __init__(self, arv_time):
-        self.arv_time = arv_time
+    def __init__(self, time):
+        self.time = time
 
 
 class Departure:
-    def __init__(self, dep_time):
-        self.dep_time = dep_time
+    def __init__(self, time):
+        self.time = time
 
 
 class DES:
