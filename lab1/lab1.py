@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 def generate_random(lambda_):
-    return -math.log(1.0 - random.random())/lambda_
+    return -math.log(1.0 - random.uniform(0.0, 1.0))/lambda_
 
 
 # Q1
@@ -82,8 +82,8 @@ class DES:
             else:
                 if __debug__:
                     str = (
-                        "Total Observer Events Generated: %f\n"
-                        "Observer Events List Length:     %f\n"
+                        "Total Observer Events Generated: %d\n"
+                        "Observer Events List Length:     %d\n"
                         "Total Observer Simulation Time:  %f\n"
                     ) % (counter, len(observer_events), current_time - observer_event_interval)
                     print(str)
@@ -109,8 +109,8 @@ class DES:
             else:
                 if __debug__:
                     str = (
-                        "Total Arrival Events Generated: %f\n"
-                        "Arrival Events List Length:     %f\n"
+                        "Total Arrival Events Generated: %d\n"
+                        "Arrival Events List Length:     %d\n"
                         "Total Arrival Simulation Time:  %f\n"
                     ) % (counter, len(arrival_events), current_time - arrival_event_interval)
                     print(str)
@@ -129,7 +129,7 @@ class DES:
 
         if __debug__:
             str = (
-                "Combined Events List Length: %f\n"
+                "Combined Events List Length: %d\n"
             ) % (len(combined_events))
             print(str)
 
@@ -155,10 +155,11 @@ class DES:
         counter_packets_in_queue_list = []
         latest_departure_time = 0.0
 
-        events_time_list = [event.time for event in events]
+        events_time_list = [event.time for event in reversed(events)]
 
         while events:
-            event = events[-1]
+            event = events.pop()
+            del events_time_list[0]
 
             if isinstance(event, Departure):
                 counter_departure += 1
@@ -191,16 +192,31 @@ class DES:
 
                     latest_departure_time = departure_time
 
-                    insertion_position = bisect.bisect_left(
+                    reversed_insertion_position = bisect.bisect(
                         events_time_list, departure_time)
+                    insertion_position = len(
+                        events_time_list) - 1 - reversed_insertion_position
 
                     if __debug__:
-                        if events[insertion_position].time != events_time_list[insertion_position]:
-                            print("Error: Invalid Mapping!")
+                        if (
+                            events[insertion_position].time != events_time_list[reversed_insertion_position] or
+                            len(events) != len(events_time_list)
+                        ):
+                            str = (
+                                "Error: Incorrect Mapping!\n"
+                                "Event Time:            %f\n"
+                                "Time in List:          %f\n"
+                                "Insertion Position:    %d\n"
+                                "Insertion Position(R): %d\n"
+                                "Events Length:         %d\n"
+                                "List Length:           %d\n"
+                            ) % (events[insertion_position].time, events_time_list[reversed_insertion_position], insertion_position, reversed_insertion_position, len(events), len(events_time_list))
+                            print(str)
 
                     events.insert(insertion_position,
                                   Departure(departure_time))
-                    events_time_list.insert(insertion_position, departure_time)
+                    events_time_list.insert(
+                        reversed_insertion_position, departure_time)
                 else:
                     counter_dropped_packets += 1
             else:
@@ -211,19 +227,16 @@ class DES:
 
                 counter_packets_in_queue_list.append(counter_packets_in_queue)
 
-            events.pop()
-            events_time_list.pop()
-
         if __debug__:
             str = (
-                "Arrival Counter:          %f\n"
-                "Departure Counter:        %f\n"
-                "Observer Counter:         %f\n"
-                "Idle Counter:             %f\n"
-                "Dropped Counter:          %f\n"
-                "Total Packets Counter:    %f\n"
-                "Packets in Queue Counter: %f\n"
-                "List Counter Length:      %f\n"
+                "Arrival Counter:          %d\n"
+                "Departure Counter:        %d\n"
+                "Observer Counter:         %d\n"
+                "Idle Counter:             %d\n"
+                "Dropped Counter:          %d\n"
+                "Total Packets Counter:    %d\n"
+                "Packets in Queue Counter: %d\n"
+                "List Counter Length:      %d\n"
                 "Latest Departure Time:    %f\n"
             ) % (counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped_packets, counter_total_packets, counter_packets_in_queue, len(counter_packets_in_queue_list), latest_departure_time)
             print(str)
@@ -251,7 +264,7 @@ def main():
 
     packet_length_avg = 2000.0
     trans_rate = 1000000.0
-    sim_time = 1000.0
+    sim_time = 0.1
 
     # infinite buffer size
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
@@ -289,7 +302,7 @@ def main():
             start_time = datetime.now().time()
             str = (
                 "Simulation with\n"
-                "Buffer Size: %f\n"
+                "Buffer Size: %d\n"
                 "Rho:         %f\n"
                 "Running, Start Time: %s\n"
             ) % (buffer_size, rho, start_time)
