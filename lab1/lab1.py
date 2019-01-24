@@ -131,6 +131,8 @@ class DES:
 
     def __calculate_metrics(self, data):
         # TODO: time-average number of packets E[N], Proportion of idle Pidle
+        if __debug__:
+            print("Calculating Metrics...\n")
         return
 
     def __process_events(self, events):
