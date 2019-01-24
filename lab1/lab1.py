@@ -195,10 +195,7 @@ class DES:
                         events_time_list, departure_time)
 
                     if __debug__:
-                        if (
-                            events[insertion_position].time !=
-                            events_time_list[insertion_position]
-                        ):
+                        if events[insertion_position].time != events_time_list[insertion_position]:
                             print("Error: Invalid Mapping!")
 
                     events.insert(insertion_position,
