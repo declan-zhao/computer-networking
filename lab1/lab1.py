@@ -117,18 +117,18 @@ class DES:
                 break
         return arrival_events
 
-    def __sort_generated_events(self, observer_events, arrival_events):
+    def __sort_generated_events(self, *events_list):
         if __debug__:
             print("Sorting Generated Events...\n")
 
-        combined_events = observer_events + arrival_events
+        combined_events = []
+
+        for events in events_list:
+            combined_events += events
 
         return sorted(combined_events, key=lambda event: event.time, reverse=True)
 
-    def __search_insertion_position(self):
-        return
-
-    def __insert_departure_event(self):
+    def __search_insertion_position(self, events, time):
         return
 
     def __calculate_metrics(self, data):
@@ -164,6 +164,25 @@ class DES:
 
                     packet_length = self.__generate_packet_length()
                     service_time = self.__calculate_service_time(packet_length)
+
+                    departure_time = 0
+
+                    if counter_packets_in_queue == 0:
+                        departure_time = event.time + service_time
+                    else:
+                        departure_time = latest_departure_time + service_time
+
+                    if __debug__:
+                        if departure_time <= event.time or departure_time <= latest_departure_time:
+                            print("Error: Invalid Departure Time!")
+
+                    latest_departure_time = departure_time
+
+                    insertion_position = self.__search_insertion_position(
+                        events, departure_time)
+
+                    events.insert(insertion_position,
+                                  Departure(departure_time))
                 else:
                     counter_dropped_packets += 1
             else:
@@ -216,7 +235,7 @@ def main():
     sim_time = 1000
 
     # infinite buffer size
-    rho_list_inf = [0.5]
+    rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
 
     for rho in rho_list_inf:
         start_time = datetime.now().time()
@@ -238,8 +257,13 @@ def main():
         print(str)
 
     # finite buffer size
-    buffer_size_list = [10]
-    rho_list_finite = [0.5]
+    buffer_size_list = [10, 25, 50]
+    rho_list_finite = (
+        [0.5 + 0.1*i for i in range(11)] +
+        [0.4 + 0.1*i for i in range(17)] +
+        [2 + 0.2*i for i in range(16)] +
+        [5 + 0.4*i for i in range(13)]
+    )
 
     for buffer_size in buffer_size_list:
         for rho in rho_list_finite:
