@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 def generate_random(lambda_):
-    return -math.log(1.0 - random.uniform(0.0, 1.0))/lambda_
+    return -math.log(1.0 - random.random())/lambda_
 
 
 # Q1
