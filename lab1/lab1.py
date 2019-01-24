@@ -127,6 +127,12 @@ class DES:
         for events in events_list:
             combined_events += events
 
+        if __debug__:
+            str = (
+                "Combined Events List Length: %f\n"
+            ) % (len(combined_events))
+            print(str)
+
         return sorted(combined_events, key=lambda event: event.time, reverse=True)
 
     def __calculate_metrics(self, data):
@@ -149,7 +155,7 @@ class DES:
         counter_packets_in_queue_list = []
         latest_departure_time = 0.0
 
-        event_time_list = [event.time for event in events]
+        events_time_list = [event.time for event in events]
 
         while events:
             event = events[-1]
@@ -182,15 +188,22 @@ class DES:
                     latest_departure_time = departure_time
 
                     insertion_position = bisect.bisect_left(
-                        event_time_list, departure_time)
+                        events_time_list, departure_time)
 
                     if __debug__:
-                        if events[insertion_position].time != event_time_list[insertion_position] or events[insertion_position - 1].time != event_time_list[insertion_position - 1] or events[insertion_position + 1].time != event_time_list[insertion_position + 1]:
+                        if (
+                            events[insertion_position].time !=
+                            events_time_list[insertion_position] or
+                            events[insertion_position - 1].time !=
+                            events_time_list[insertion_position - 1] or
+                            events[insertion_position + 1].time !=
+                            events_time_list[insertion_position + 1]
+                        ):
                             print("Error: Invalid Mapping!")
 
                     events.insert(insertion_position,
                                   Departure(departure_time))
-                    event_time_list.insert(insertion_position, departure_time)
+                    events_time_list.insert(insertion_position, departure_time)
                 else:
                     counter_dropped_packets += 1
             else:
@@ -202,7 +215,7 @@ class DES:
                 counter_packets_in_queue_list.append(counter_packets_in_queue)
 
             events.pop()
-            event_time_list.pop()
+            events_time_list.pop()
 
         if __debug__:
             str = (
