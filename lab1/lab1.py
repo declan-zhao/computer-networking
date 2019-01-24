@@ -43,7 +43,7 @@ class Departure:
 
 
 class DES:
-    def __init__(self, packet_length_avg, trans_rate, sim_time, rho=0.5, buffer_size=float("inf")):
+    def __init__(self, packet_length_avg, trans_rate, sim_time, rho, buffer_size=float("inf")):
         self.__packet_length_avg = packet_length_avg
         self.__trans_rate = trans_rate
         self.__sim_time = sim_time
