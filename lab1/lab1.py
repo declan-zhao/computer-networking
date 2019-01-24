@@ -1,3 +1,4 @@
+import bisect
 import math
 import random
 import statistics
@@ -5,7 +6,7 @@ from datetime import datetime
 
 
 def generate_random(lambda_):
-    return -math.log(1 - random.uniform(0, 1))/lambda_
+    return -math.log(1.0 - random.uniform(0.0, 1.0))/lambda_
 
 
 # Q1
@@ -15,7 +16,7 @@ def verify_generated_random(lambda_):
     mean = statistics.mean(random)
     variance = statistics.variance(random)
 
-    expected_mean = 1/lambda_
+    expected_mean = 1.0/lambda_
     expected_variance = expected_mean/lambda_
 
     str = (
@@ -52,13 +53,13 @@ class DES:
         self.__lambda = rho*trans_rate/packet_length_avg
 
     def __generate_packet_length(self):
-        return generate_random(1/self.__packet_length_avg)
+        return generate_random(1.0/self.__packet_length_avg)
 
     def __calculate_service_time(self, packet_length):
         return packet_length/self.__trans_rate
 
     def __generate_observer_event_interval(self):
-        return generate_random(self.__lambda * 5)
+        return generate_random(self.__lambda * 5.0)
 
     def __generate_arrival_event_interval(self):
         return generate_random(self.__lambda)
@@ -68,7 +69,7 @@ class DES:
             print("Generating Observer Events...\n")
 
         observer_events = []
-        current_time = 0
+        current_time = 0.0
         counter = 0
 
         while True:
@@ -95,7 +96,7 @@ class DES:
             print("Generating Arrival Events...\n")
 
         arrival_events = []
-        current_time = 0
+        current_time = 0.0
         counter = 0
 
         while True:
@@ -128,14 +129,11 @@ class DES:
 
         return sorted(combined_events, key=lambda event: event.time, reverse=True)
 
-    def __search_insertion_position(self, events, time):
-        return
-
     def __calculate_metrics(self, data):
         # TODO: time-average number of packets E[N], Proportion of idle Pidle
         if __debug__:
             print("Calculating Metrics...\n")
-        return
+        pass
 
     def __process_events(self, events):
         if __debug__:
@@ -149,7 +147,9 @@ class DES:
         counter_total_packets = 0
         counter_packets_in_queue = 0
         counter_packets_in_queue_list = []
-        latest_departure_time = 0
+        latest_departure_time = 0.0
+
+        event_time_list = [event.time for event in events]
 
         for event in reversed(events):
             if isinstance(event, Departure):
@@ -165,7 +165,7 @@ class DES:
                     packet_length = self.__generate_packet_length()
                     service_time = self.__calculate_service_time(packet_length)
 
-                    departure_time = 0
+                    departure_time = 0.0
 
                     if counter_packets_in_queue == 0:
                         departure_time = event.time + service_time
@@ -173,16 +173,17 @@ class DES:
                         departure_time = latest_departure_time + service_time
 
                     if __debug__:
-                        if departure_time <= event.time or departure_time <= latest_departure_time:
+                        if departure_time < event.time or departure_time < latest_departure_time:
                             print("Error: Invalid Departure Time!")
 
                     latest_departure_time = departure_time
 
-                    insertion_position = self.__search_insertion_position(
-                        events, departure_time)
+                    insertion_position = bisect.bisect_left(
+                        event_time_list, departure_time)
 
                     events.insert(insertion_position,
                                   Departure(departure_time))
+                    event_time_list.insert(insertion_position, departure_time)
                 else:
                     counter_dropped_packets += 1
             else:
@@ -194,6 +195,7 @@ class DES:
                 counter_packets_in_queue_list.append(counter_packets_in_queue)
 
             events.pop()
+            event_time_list.pop()
 
         if __debug__:
             str = (
@@ -228,11 +230,11 @@ class DES:
 
 def main():
     if __debug__:
-        verify_generated_random(75)
+        verify_generated_random(75.0)
 
-    packet_length_avg = 2000
-    trans_rate = 1000000
-    sim_time = 1000
+    packet_length_avg = 2000.0
+    trans_rate = 1000000.0
+    sim_time = 1000.0
 
     # infinite buffer size
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
