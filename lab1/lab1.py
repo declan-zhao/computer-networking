@@ -163,6 +163,10 @@ class DES:
             if isinstance(event, Departure):
                 counter_departure += 1
                 counter_packets_in_queue -= 1
+
+                if __debug__:
+                    if counter_packets_in_queue < 0:
+                        print("Error: Negative Packets Counter!")
             elif isinstance(event, Arrival):
                 counter_total_packets += 1
 
@@ -193,11 +197,7 @@ class DES:
                     if __debug__:
                         if (
                             events[insertion_position].time !=
-                            events_time_list[insertion_position] or
-                            events[insertion_position - 1].time !=
-                            events_time_list[insertion_position - 1] or
-                            events[insertion_position + 1].time !=
-                            events_time_list[insertion_position + 1]
+                            events_time_list[insertion_position]
                         ):
                             print("Error: Invalid Mapping!")
 
