@@ -151,7 +151,9 @@ class DES:
 
         event_time_list = [event.time for event in events]
 
-        for event in reversed(events):
+        while events:
+            event = events[-1]
+
             if isinstance(event, Departure):
                 counter_departure += 1
                 counter_packets_in_queue -= 1
@@ -159,9 +161,6 @@ class DES:
                 counter_total_packets += 1
 
                 if counter_packets_in_queue < self.__buffer_size:
-                    counter_arrvial += 1
-                    counter_packets_in_queue += 1
-
                     packet_length = self.__generate_packet_length()
                     service_time = self.__calculate_service_time(packet_length)
 
@@ -170,16 +169,24 @@ class DES:
                     if counter_packets_in_queue == 0:
                         departure_time = event.time + service_time
                     else:
-                        departure_time = latest_departure_time + service_time
+                        departure_time = max(
+                            latest_departure_time, event.time) + service_time
+
+                    counter_arrvial += 1
+                    counter_packets_in_queue += 1
 
                     if __debug__:
-                        if departure_time < event.time or departure_time < latest_departure_time:
+                        if departure_time <= event.time or departure_time <= latest_departure_time:
                             print("Error: Invalid Departure Time!")
 
                     latest_departure_time = departure_time
 
                     insertion_position = bisect.bisect_left(
                         event_time_list, departure_time)
+
+                    if __debug__:
+                        if events[insertion_position].time != event_time_list[insertion_position] or events[insertion_position - 1].time != event_time_list[insertion_position - 1] or events[insertion_position + 1].time != event_time_list[insertion_position + 1]:
+                            print("Error: Invalid Mapping!")
 
                     events.insert(insertion_position,
                                   Departure(departure_time))
