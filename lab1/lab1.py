@@ -129,7 +129,7 @@ class DES:
     def __insert_departure_event(self):
         return
 
-    def __calculate_metrics(self):
+    def __calculate_metrics(self, data):
         # TODO: time-average number of packets E[N], Proportion of idle Pidle
         return
 
@@ -199,7 +199,8 @@ class DES:
         arrival_events = self.__generate_arrival_events()
         sorted_events = self.__sort_generated_events(
             observer_events, arrival_events)
-        result = self.__process_events(sorted_events)
+        data = self.__process_events(sorted_events)
+        self.__calculate_metrics(data)
 
 
 def main():
