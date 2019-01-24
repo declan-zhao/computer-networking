@@ -82,8 +82,9 @@ class DES:
                 if __debug__:
                     str = (
                         "Total Observer Events Generated: %f\n"
+                        "Observer Events List Length:     %f\n"
                         "Total Observer Simulation Time:  %f\n"
-                    ) % (counter, current_time - observer_event_interval)
+                    ) % (counter, len(observer_events), current_time - observer_event_interval)
                     print(str)
 
                 break
@@ -108,8 +109,9 @@ class DES:
                 if __debug__:
                     str = (
                         "Total Arrival Events Generated: %f\n"
+                        "Arrival Events List Length:     %f\n"
                         "Total Arrival Simulation Time:  %f\n"
-                    ) % (counter, current_time - arrival_event_interval)
+                    ) % (counter, len(arrival_events), current_time - arrival_event_interval)
                     print(str)
 
                 break
@@ -206,7 +208,8 @@ class DES:
 
 
 def main():
-    verify_generated_random(75)
+    if __debug__:
+        verify_generated_random(75)
 
     packet_length_avg = 2000
     trans_rate = 1000000
