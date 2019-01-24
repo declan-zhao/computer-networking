@@ -57,11 +57,11 @@ class DES:
     def __calculate_service_time(self, packet_length):
         return packet_length/self.__trans_rate
 
-    def __generate_observer_event(self):
-        return Observer(generate_random(self.__lambda * 5))
+    def __generate_observer_event_interval(self):
+        return generate_random(self.__lambda * 5)
 
-    def __generate_arrival_event(self):
-        return Arrival(generate_random(self.__lambda))
+    def __generate_arrival_event_interval(self):
+        return generate_random(self.__lambda)
 
     def __generate_observer_events(self):
         if __debug__:
@@ -72,18 +72,18 @@ class DES:
         counter = 0
 
         while True:
-            observer_event = self.__generate_observer_event()
-            current_time += observer_event.time
+            observer_event_interval = self.__generate_observer_event_interval()
+            current_time += observer_event_interval
 
             if current_time <= self.__sim_time:
-                observer_events.append(observer_event)
+                observer_events.append(Observer(current_time))
                 counter += 1
             else:
                 if __debug__:
                     str = (
                         "Total Observer Events Generated: %f\n"
                         "Total Observer Simulation Time:  %f\n"
-                    ) % (counter, current_time - observer_event.time)
+                    ) % (counter, current_time - observer_event_interval)
                     print(str)
 
                 break
@@ -98,18 +98,18 @@ class DES:
         counter = 0
 
         while True:
-            arrival_event = self.__generate_arrival_event()
-            current_time += arrival_event.time
+            arrival_event_interval = self.__generate_arrival_event_interval()
+            current_time += arrival_event_interval
 
             if current_time <= self.__sim_time:
-                arrival_events.append(arrival_event)
+                arrival_events.append(Arrival(current_time))
                 counter += 1
             else:
                 if __debug__:
                     str = (
                         "Total Arrival Events Generated: %f\n"
                         "Total Arrival Simulation Time:  %f\n"
-                    ) % (counter, current_time - arrival_event.time)
+                    ) % (counter, current_time - arrival_event_interval)
                     print(str)
 
                 break
