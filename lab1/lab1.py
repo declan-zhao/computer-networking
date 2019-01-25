@@ -194,22 +194,34 @@ class DES:
 
                     reversed_insertion_position = bisect.bisect(
                         events_time_list, departure_time)
-                    insertion_position = -reversed_insertion_position
+                    insertion_position = len(
+                        events_time_list) - reversed_insertion_position
 
                     if __debug__:
-                        if (
-                            events[insertion_position].time != events_time_list[reversed_insertion_position] or
-                            len(events) != len(events_time_list)
-                        ):
+                        is_error = False
+
+                        if reversed_insertion_position < len(events_time_list):
+                            if (
+                                len(events) != len(events_time_list) or
+                                events[insertion_position -
+                                       1].time != events_time_list[reversed_insertion_position]
+                            ):
+                                is_error = True
+                        else:
+                            if (
+                                len(events) != len(events_time_list) or
+                                events[0].time != events_time_list[reversed_insertion_position - 1]
+                            ):
+                                is_error = True
+
+                        if is_error:
                             str = (
                                 "Error: Incorrect Mapping!\n"
-                                "Event Time:            %f\n"
-                                "Time in List:          %f\n"
                                 "Insertion Position:    %d\n"
                                 "Insertion Position(R): %d\n"
                                 "Events Length:         %d\n"
                                 "List Length:           %d\n"
-                            ) % (events[insertion_position].time, events_time_list[reversed_insertion_position], insertion_position, reversed_insertion_position, len(events), len(events_time_list))
+                            ) % (insertion_position, reversed_insertion_position, len(events), len(events_time_list))
                             print(str)
 
                     events.insert(insertion_position,
@@ -263,7 +275,7 @@ def main():
 
     packet_length_avg = 2000.0
     trans_rate = 1000000.0
-    sim_time = 0.1
+    sim_time = 1000
 
     # infinite buffer size
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
