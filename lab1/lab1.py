@@ -194,8 +194,7 @@ class DES:
 
                     reversed_insertion_position = bisect.bisect(
                         events_time_list, departure_time)
-                    insertion_position = len(
-                        events_time_list) - 1 - reversed_insertion_position
+                    insertion_position = -reversed_insertion_position
 
                     if __debug__:
                         if (
