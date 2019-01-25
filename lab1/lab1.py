@@ -139,6 +139,20 @@ class DES:
 
         return sorted(combined_events, key=lambda event: event.time, reverse=True)
 
+    def __search_insertion_position(self, events, time):
+        lo = 0
+        hi = len(events)
+
+        while lo < hi:
+            mid = (lo+hi)//2
+
+            if time > events[mid].time:
+                hi = mid
+            else:
+                lo = mid + 1
+
+        return lo
+
     def __calculate_metrics(self, data):
         # TODO: time-average number of packets E[N], Proportion of idle Pidle
         if __debug__:
@@ -159,11 +173,8 @@ class DES:
         counter_packets_in_queue_list = []
         latest_departure_time = 0.0
 
-        events_time_list = [event.time for event in reversed(events)]
-
         while events:
             event = events.pop()
-            del events_time_list[0]
 
             if isinstance(event, Departure):
                 counter_departure += 1
@@ -195,42 +206,11 @@ class DES:
 
                     latest_departure_time = departure_time
 
-                    reversed_insertion_position = bisect.bisect(
-                        events_time_list, departure_time)
-                    insertion_position = len(
-                        events_time_list) - reversed_insertion_position
-
-                    if __debug__:
-                        is_error = False
-
-                        if reversed_insertion_position < len(events_time_list):
-                            if (
-                                len(events) != len(events_time_list) or
-                                events[insertion_position -
-                                       1].time != events_time_list[reversed_insertion_position]
-                            ):
-                                is_error = True
-                        else:
-                            if (
-                                len(events) != len(events_time_list) or
-                                events[0].time != events_time_list[reversed_insertion_position - 1]
-                            ):
-                                is_error = True
-
-                        if is_error:
-                            str = (
-                                "Error: Incorrect Mapping!\n"
-                                "Insertion Position:    %d\n"
-                                "Insertion Position(R): %d\n"
-                                "Events Length:         %d\n"
-                                "List Length:           %d\n"
-                            ) % (insertion_position, reversed_insertion_position, len(events), len(events_time_list))
-                            print(str)
+                    insertion_position = self.__search_insertion_position(
+                        events, departure_time)
 
                     events.insert(insertion_position,
                                   Departure(departure_time))
-                    events_time_list.insert(
-                        reversed_insertion_position, departure_time)
 
                     counter_packets_in_queue += 1
                 else:
