@@ -6,7 +6,7 @@ from datetime import datetime
 
 
 def generate_random(lambda_):
-    return -math.log(1.0 - random.uniform(0.0, 1.0))/lambda_
+    return -math.log(1.0 - random.random())/lambda_
 
 
 # Q1
@@ -67,10 +67,10 @@ class DES:
     def __generate_observer_events(self):
         if __debug__:
             print("Generating Observer Events...\n")
+            counter = 0
 
         observer_events = []
         current_time = 0.0
-        counter = 0
 
         while True:
             observer_event_interval = self.__generate_observer_event_interval()
@@ -78,7 +78,9 @@ class DES:
 
             if current_time <= self.__sim_time:
                 observer_events.append(Observer(current_time))
-                counter += 1
+
+                if __debug__:
+                    counter += 1
             else:
                 if __debug__:
                     str = (
@@ -94,10 +96,10 @@ class DES:
     def __generate_arrival_events(self):
         if __debug__:
             print("Generating Arrival Events...\n")
+            counter = 0
 
         arrival_events = []
         current_time = 0.0
-        counter = 0
 
         while True:
             arrival_event_interval = self.__generate_arrival_event_interval()
@@ -105,7 +107,9 @@ class DES:
 
             if current_time <= self.__sim_time:
                 arrival_events.append(Arrival(current_time))
-                counter += 1
+
+                if __debug__:
+                    counter += 1
             else:
                 if __debug__:
                     str = (
@@ -172,6 +176,8 @@ class DES:
                 counter_total_packets += 1
 
                 if counter_packets_in_queue < self.__buffer_size:
+                    counter_arrvial += 1
+
                     packet_length = self.__generate_packet_length()
                     service_time = self.__calculate_service_time(packet_length)
 
@@ -182,9 +188,6 @@ class DES:
                     else:
                         departure_time = max(
                             latest_departure_time, event.time) + service_time
-
-                    counter_arrvial += 1
-                    counter_packets_in_queue += 1
 
                     if __debug__:
                         if departure_time <= event.time or departure_time <= latest_departure_time:
@@ -228,6 +231,8 @@ class DES:
                                   Departure(departure_time))
                     events_time_list.insert(
                         reversed_insertion_position, departure_time)
+
+                    counter_packets_in_queue += 1
                 else:
                     counter_dropped_packets += 1
             else:
