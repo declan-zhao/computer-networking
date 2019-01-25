@@ -1,4 +1,4 @@
-import bisect
+import heapq
 import math
 import random
 import statistics
@@ -28,22 +28,11 @@ def verify_generated_random(lambda_):
     print(str)
 
 
-class Observer:
-    def __init__(self, time):
-        self.time = time
-
-
-class Arrival:
-    def __init__(self, time):
-        self.time = time
-
-
-class Departure:
-    def __init__(self, time):
-        self.time = time
-
-
 class DES:
+    __EVENT_OBSERVER = "Observer"
+    __EVENT_ARRIVAL = "Arrival"
+    __EVENT_DEPARTURE = "Departure"
+
     def __init__(self, packet_length_avg, trans_rate, sim_time, rho, buffer_size=float("inf")):
         self.__packet_length_avg = packet_length_avg
         self.__trans_rate = trans_rate
@@ -77,7 +66,7 @@ class DES:
             current_time += observer_event_interval
 
             if current_time <= self.__sim_time:
-                observer_events.append(Observer(current_time))
+                observer_events.append((current_time, self.__EVENT_OBSERVER))
 
                 if __debug__:
                     counter += 1
@@ -106,7 +95,7 @@ class DES:
             current_time += arrival_event_interval
 
             if current_time <= self.__sim_time:
-                arrival_events.append(Arrival(current_time))
+                arrival_events.append((current_time, self.__EVENT_ARRIVAL))
 
                 if __debug__:
                     counter += 1
@@ -122,9 +111,9 @@ class DES:
                 break
         return arrival_events
 
-    def __sort_generated_events(self, *events_list):
+    def __combine_generated_events(self, *events_list):
         if __debug__:
-            print("Sorting Generated Events...\n")
+            print("Combining Generated Events...\n")
 
         combined_events = []
 
@@ -137,21 +126,7 @@ class DES:
             ) % (len(combined_events))
             print(str)
 
-        return sorted(combined_events, key=lambda event: event.time, reverse=True)
-
-    def __search_insertion_position(self, events, time):
-        lo = 0
-        hi = len(events)
-
-        while lo < hi:
-            mid = (lo+hi)//2
-
-            if time > events[mid].time:
-                hi = mid
-            else:
-                lo = mid + 1
-
-        return lo
+        return combined_events
 
     def __calculate_metrics(self, data):
         # TODO: time-average number of packets E[N], Proportion of idle Pidle
@@ -162,6 +137,11 @@ class DES:
     def __process_events(self, events):
         if __debug__:
             print("Processing Events...\n")
+
+        heapq.heapify(events)
+
+        if __debug__:
+            print("Heapified Events...\n")
 
         counter_arrvial = 0
         counter_departure = 0
@@ -174,16 +154,16 @@ class DES:
         latest_departure_time = 0.0
 
         while events:
-            event = events.pop()
+            event = heapq.heappop(events)
 
-            if isinstance(event, Departure):
+            if event[1] == self.__EVENT_DEPARTURE:
                 counter_departure += 1
                 counter_packets_in_queue -= 1
 
                 if __debug__:
                     if counter_packets_in_queue < 0:
                         print("Error: Negative Packets Counter!")
-            elif isinstance(event, Arrival):
+            elif event[1] == self.__EVENT_ARRIVAL:
                 counter_total_packets += 1
 
                 if counter_packets_in_queue < self.__buffer_size:
@@ -195,22 +175,19 @@ class DES:
                     departure_time = 0.0
 
                     if counter_packets_in_queue == 0:
-                        departure_time = event.time + service_time
+                        departure_time = event[0] + service_time
                     else:
                         departure_time = max(
-                            latest_departure_time, event.time) + service_time
+                            latest_departure_time, event[0]) + service_time
 
                     if __debug__:
-                        if departure_time <= event.time or departure_time <= latest_departure_time:
+                        if departure_time <= event[0] or departure_time <= latest_departure_time:
                             print("Error: Invalid Departure Time!")
 
                     latest_departure_time = departure_time
 
-                    insertion_position = self.__search_insertion_position(
-                        events, departure_time)
-
-                    events.insert(insertion_position,
-                                  Departure(departure_time))
+                    heapq.heappush(
+                        events, (departure_time, self.__EVENT_DEPARTURE))
 
                     counter_packets_in_queue += 1
                 else:
@@ -248,9 +225,9 @@ class DES:
     def sim_MM1K_queue(self):
         observer_events = self.__generate_observer_events()
         arrival_events = self.__generate_arrival_events()
-        sorted_events = self.__sort_generated_events(
+        combined_events = self.__combine_generated_events(
             observer_events, arrival_events)
-        data = self.__process_events(sorted_events)
+        data = self.__process_events(combined_events)
         self.__calculate_metrics(data)
 
 
