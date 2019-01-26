@@ -241,12 +241,28 @@ class DES:
             print("Error: Finite Buffer Size!\n")
 
     def sim_MM1K_queue(self):
+        start_time = datetime.now().time()
+        str = (
+            "Simulation with\n"
+            "Buffer Size: %s\n"
+            "Rho:         %f\n"
+            "Running, Start Time: %s\n"
+        ) % (self.__buffer_size, self.__rho, start_time)
+        print(str)
+
         observer_events = self.__generate_observer_events()
         arrival_events = self.__generate_arrival_events()
         combined_events = self.__combine_generated_events(
             observer_events, arrival_events)
         data = self.__process_events(combined_events)
         self.__calculate_metrics(data)
+
+        end_time = datetime.now().time()
+        str = (
+            "Complete, End Time: %s\n\n"
+            "------------------------------------------------------\n"
+        ) % (end_time)
+        print(str)
 
 
 def main():
@@ -261,24 +277,8 @@ def main():
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
 
     for rho in rho_list_inf:
-        start_time = datetime.now().time()
-        str = (
-            "Simulation with\n"
-            "Infinite Buffer Size\n"
-            "Rho: %f\n"
-            "Running, Start Time: %s\n"
-        ) % (rho, start_time)
-        print(str)
-
         DES_inf = DES(packet_length_avg, trans_rate, sim_time, rho)
         DES_inf.sim_MM1_queue()
-
-        end_time = datetime.now().time()
-        str = (
-            "Complete, End Time: %s\n\n"
-            "------------------------------------------------------\n"
-        ) % (end_time)
-        print(str)
 
     # finite buffer size
     buffer_size_list = [10, 25, 50]
@@ -291,25 +291,9 @@ def main():
 
     for buffer_size in buffer_size_list:
         for rho in rho_list_finite:
-            start_time = datetime.now().time()
-            str = (
-                "Simulation with\n"
-                "Buffer Size: %d\n"
-                "Rho:         %f\n"
-                "Running, Start Time: %s\n"
-            ) % (buffer_size, rho, start_time)
-            print(str)
-
             DES_finite = DES(packet_length_avg, trans_rate,
                              sim_time, rho, buffer_size)
             DES_finite.sim_MM1K_queue()
-
-            end_time = datetime.now().time()
-            str = (
-                "Complete, End Time: %s\n\n"
-                "------------------------------------------------------\n"
-            ) % (end_time)
-            print(str)
 
     return
 
