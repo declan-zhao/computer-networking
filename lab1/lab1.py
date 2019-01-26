@@ -23,7 +23,8 @@ def verify_generated_random(lambda_):
         "Actual Mean:       %f\n"
         "Expected Mean:     %f\n"
         "Actual Variance:   %f\n"
-        "Expected Variance: %f\n"
+        "Expected Variance: %f\n\n"
+        "------------------------------------------------------\n"
     ) % (mean, expected_mean, variance, expected_variance)
     print(str)
 
@@ -139,12 +140,11 @@ class DES:
         packets_loss_probability = data["counter_dropped_packets"] / \
             data["counter_total_packets"]
 
-        str = (
-            "Packets in Queue Avg:    %f\n"
-            "Idle Time Proportion:    %f\n"
-            "Packet Loss Probability: %f\n"
-        ) % (packets_in_queue_avg, idle_time_proportion, packets_loss_probability)
-        print(str)
+        return {
+            "packets_in_queue_avg": packets_in_queue_avg,
+            "idle_time_proportion": idle_time_proportion,
+            "packets_loss_probability": packets_loss_probability
+        }
 
     def __process_events(self, events):
         if __debug__:
@@ -246,28 +246,44 @@ class DES:
             "Simulation with\n"
             "Buffer Size: %s\n"
             "Rho:         %f\n"
-            "Running, Start Time: %s\n"
+            "Start Time: %s\n\n"
         ) % (self.__buffer_size, self.__rho, start_time)
-        print(str)
 
         observer_events = self.__generate_observer_events()
         arrival_events = self.__generate_arrival_events()
         combined_events = self.__combine_generated_events(
             observer_events, arrival_events)
         data = self.__process_events(combined_events)
-        self.__calculate_metrics(data)
+        metrics = self.__calculate_metrics(data)
+
+        str += (
+            "Packets in Queue Avg:    %f\n"
+            "Idle Time Proportion:    %f\n"
+            "Packet Loss Probability: %f\n\n"
+        ) % (metrics["packets_in_queue_avg"], metrics["idle_time_proportion"], metrics["packets_loss_probability"])
 
         end_time = datetime.now().time()
-        str = (
-            "Complete, End Time: %s\n\n"
+        str += (
+            "End Time: %s\n\n"
             "------------------------------------------------------\n"
         ) % (end_time)
         print(str)
 
+        return metrics
+
+
+def start_DES(packet_length_avg, trans_rate, sim_time, buffer_size, rho):
+    DES_instance = DES(packet_length_avg, trans_rate,
+                       sim_time, rho, buffer_size)
+
+    if buffer_size == float("inf"):
+        DES_instance.sim_MM1_queue()
+    else:
+        DES_instance.sim_MM1K_queue()
+
 
 def main():
-    if __debug__:
-        verify_generated_random(75.0)
+    verify_generated_random(75.0)
 
     packet_length_avg = 2000.0
     trans_rate = 1000000.0
@@ -277,8 +293,7 @@ def main():
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
 
     for rho in rho_list_inf:
-        DES_inf = DES(packet_length_avg, trans_rate, sim_time, rho)
-        DES_inf.sim_MM1_queue()
+        start_DES(packet_length_avg, trans_rate, sim_time, float("inf"), rho)
 
     # finite buffer size
     buffer_size_list = [10, 25, 50]
@@ -291,9 +306,8 @@ def main():
 
     for buffer_size in buffer_size_list:
         for rho in rho_list_finite:
-            DES_finite = DES(packet_length_avg, trans_rate,
-                             sim_time, rho, buffer_size)
-            DES_finite.sim_MM1K_queue()
+            start_DES(packet_length_avg, trans_rate,
+                      sim_time, buffer_size, rho)
 
     return
 
