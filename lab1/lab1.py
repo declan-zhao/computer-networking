@@ -2,8 +2,10 @@ import heapq
 import math
 import random
 import statistics
+import time
 from datetime import datetime
 from functools import partial
+from multiprocessing import Manager, Pool
 
 
 def generate_random(lambda_):
@@ -239,7 +241,7 @@ class DES:
 
     def sim_MM1_queue(self):
         if self.__buffer_size == float("inf"):
-            self.sim_MM1K_queue()
+            return self.sim_MM1K_queue()
         else:
             print("Error: Finite Buffer Size!\n")
 
@@ -270,46 +272,66 @@ class DES:
             "End Time: %s\n\n"
             "------------------------------------------------------\n"
         ) % (end_time)
-        print(str)
 
-        return metrics
+        return [metrics, str]
 
 
-def start_DES(packet_length_avg, trans_rate, sim_time, buffer_size, rho):
+def start_DES(lock, packet_length_avg, trans_rate, sim_time, buffer_size, rho):
     DES_instance = DES(packet_length_avg, trans_rate,
                        sim_time, buffer_size, rho)
+    res = []
 
     if buffer_size == float("inf"):
-        DES_instance.sim_MM1_queue()
+        res = DES_instance.sim_MM1_queue()
     else:
-        DES_instance.sim_MM1K_queue()
+        res = DES_instance.sim_MM1K_queue()
+
+    lock.acquire()
+
+    try:
+        print(res[1])
+    finally:
+        lock.release()
+
+    return res[0]
 
 
 def main():
+    start_time = time.time()
+
     verify_generated_random(75.0)
 
     packet_length_avg = 2000.0
     trans_rate = 1000000.0
     sim_time = 1000
 
+    manager = Manager()
+    lock = manager.Lock()
+    pool = Pool(5)
+
     # infinite buffer size
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
-    start_inf_DES = partial(start_DES, packet_length_avg,
+    start_inf_DES = partial(start_DES, lock, packet_length_avg,
                             trans_rate, sim_time, float("inf"))
 
-    for rho in rho_list_inf:
-        start_inf_DES(rho)
+    pool.map(start_inf_DES, rho_list_inf)
 
     # finite buffer size
     buffer_size_list = [10, 25, 50]
     rho_list_finite = [0.5 + 0.1*i for i in range(11)]
 
     for buffer_size in buffer_size_list:
-        start_finite_DES = partial(start_DES, packet_length_avg,
+        start_finite_DES = partial(start_DES, lock, packet_length_avg,
                                    trans_rate, sim_time, buffer_size)
 
-        for rho in rho_list_finite:
-            start_finite_DES(rho)
+        pool.map(start_finite_DES, rho_list_finite)
+
+    end_time = time.time()
+
+    str = (
+        "Execution Time: %s seconds\n"
+    ) % (end_time - start_time)
+    print(str)
 
     return
 
