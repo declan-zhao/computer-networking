@@ -3,6 +3,7 @@ import math
 import random
 import statistics
 from datetime import datetime
+from functools import partial
 
 
 def generate_random(lambda_):
@@ -20,10 +21,11 @@ def verify_generated_random(lambda_):
     expected_variance = expected_mean/lambda_
 
     str = (
-        "Actual Mean:       %f\n"
-        "Expected Mean:     %f\n"
-        "Actual Variance:   %f\n"
-        "Expected Variance: %f\n"
+        "Actual Mean:       %.10f\n"
+        "Expected Mean:     %.10f\n"
+        "Actual Variance:   %.10f\n"
+        "Expected Variance: %.10f\n\n"
+        "------------------------------------------------------\n"
     ) % (mean, expected_mean, variance, expected_variance)
     print(str)
 
@@ -33,7 +35,7 @@ class DES:
     __EVENT_ARRIVAL = "Arrival"
     __EVENT_DEPARTURE = "Departure"
 
-    def __init__(self, packet_length_avg, trans_rate, sim_time, rho, buffer_size=float("inf")):
+    def __init__(self, packet_length_avg, trans_rate, sim_time, buffer_size, rho):
         self.__packet_length_avg = packet_length_avg
         self.__trans_rate = trans_rate
         self.__sim_time = sim_time
@@ -75,7 +77,7 @@ class DES:
                     str = (
                         "Total Observer Events Generated: %d\n"
                         "Observer Events List Length:     %d\n"
-                        "Total Observer Simulation Time:  %f\n"
+                        "Total Observer Simulation Time:  %.10f\n"
                     ) % (counter, len(observer_events), current_time - observer_event_interval)
                     print(str)
 
@@ -104,7 +106,7 @@ class DES:
                     str = (
                         "Total Arrival Events Generated: %d\n"
                         "Arrival Events List Length:     %d\n"
-                        "Total Arrival Simulation Time:  %f\n"
+                        "Total Arrival Simulation Time:  %.10f\n"
                     ) % (counter, len(arrival_events), current_time - arrival_event_interval)
                     print(str)
 
@@ -139,12 +141,11 @@ class DES:
         packets_loss_probability = data["counter_dropped_packets"] / \
             data["counter_total_packets"]
 
-        str = (
-            "Packets in Queue Avg:    %f\n"
-            "Idle Time Proportion:    %f\n"
-            "Packet Loss Probability: %f\n"
-        ) % (packets_in_queue_avg, idle_time_proportion, packets_loss_probability)
-        print(str)
+        return {
+            "packets_in_queue_avg": packets_in_queue_avg,
+            "idle_time_proportion": idle_time_proportion,
+            "packets_loss_probability": packets_loss_probability
+        }
 
     def __process_events(self, events):
         if __debug__:
@@ -222,7 +223,7 @@ class DES:
                 "Total Packets Counter:    %d\n"
                 "Packets in Queue Counter: %d\n"
                 "List Counter Length:      %d\n"
-                "Latest Departure Time:    %f\n"
+                "Latest Departure Time:    %.10f\n"
             ) % (counter_arrvial, counter_departure, counter_observer, counter_idle, counter_dropped_packets, counter_total_packets, counter_packets_in_queue, len(counter_packets_in_queue_list), latest_departure_time)
             print(str)
 
@@ -241,17 +242,49 @@ class DES:
             print("Error: Finite Buffer Size!\n")
 
     def sim_MM1K_queue(self):
+        start_time = datetime.now().time()
+        str = (
+            "Simulation with\n"
+            "Buffer Size: %s\n"
+            "Rho:         %.10f\n"
+            "Start Time: %s\n\n"
+        ) % (self.__buffer_size, self.__rho, start_time)
+
         observer_events = self.__generate_observer_events()
         arrival_events = self.__generate_arrival_events()
         combined_events = self.__combine_generated_events(
             observer_events, arrival_events)
         data = self.__process_events(combined_events)
-        self.__calculate_metrics(data)
+        metrics = self.__calculate_metrics(data)
+
+        str += (
+            "Packets in Queue Avg:    %.10f\n"
+            "Idle Time Proportion:    %.10f\n"
+            "Packet Loss Probability: %.10f\n\n"
+        ) % (metrics["packets_in_queue_avg"], metrics["idle_time_proportion"], metrics["packets_loss_probability"])
+
+        end_time = datetime.now().time()
+        str += (
+            "End Time: %s\n\n"
+            "------------------------------------------------------\n"
+        ) % (end_time)
+        print(str)
+
+        return metrics
+
+
+def start_DES(packet_length_avg, trans_rate, sim_time, buffer_size, rho):
+    DES_instance = DES(packet_length_avg, trans_rate,
+                       sim_time, buffer_size, rho)
+
+    if buffer_size == float("inf"):
+        DES_instance.sim_MM1_queue()
+    else:
+        DES_instance.sim_MM1K_queue()
 
 
 def main():
-    if __debug__:
-        verify_generated_random(75.0)
+    verify_generated_random(75.0)
 
     packet_length_avg = 2000.0
     trans_rate = 1000000.0
@@ -259,57 +292,22 @@ def main():
 
     # infinite buffer size
     rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
+    start_inf_DES = partial(start_DES, packet_length_avg,
+                            trans_rate, sim_time, float("inf"))
 
     for rho in rho_list_inf:
-        start_time = datetime.now().time()
-        str = (
-            "Simulation with\n"
-            "Infinite Buffer Size\n"
-            "Rho: %f\n"
-            "Running, Start Time: %s\n"
-        ) % (rho, start_time)
-        print(str)
-
-        DES_inf = DES(packet_length_avg, trans_rate, sim_time, rho)
-        DES_inf.sim_MM1_queue()
-
-        end_time = datetime.now().time()
-        str = (
-            "Complete, End Time: %s\n\n"
-            "------------------------------------------------------\n"
-        ) % (end_time)
-        print(str)
+        start_inf_DES(rho)
 
     # finite buffer size
     buffer_size_list = [10, 25, 50]
-    rho_list_finite = (
-        [0.5 + 0.1*i for i in range(11)] +
-        [0.4 + 0.1*i for i in range(17)] +
-        [2 + 0.2*i for i in range(16)] +
-        [5 + 0.4*i for i in range(13)]
-    )
+    rho_list_finite = [0.5 + 0.1*i for i in range(11)]
 
     for buffer_size in buffer_size_list:
+        start_finite_DES = partial(start_DES, packet_length_avg,
+                                   trans_rate, sim_time, buffer_size)
+
         for rho in rho_list_finite:
-            start_time = datetime.now().time()
-            str = (
-                "Simulation with\n"
-                "Buffer Size: %d\n"
-                "Rho:         %f\n"
-                "Running, Start Time: %s\n"
-            ) % (buffer_size, rho, start_time)
-            print(str)
-
-            DES_finite = DES(packet_length_avg, trans_rate,
-                             sim_time, rho, buffer_size)
-            DES_finite.sim_MM1K_queue()
-
-            end_time = datetime.now().time()
-            str = (
-                "Complete, End Time: %s\n\n"
-                "------------------------------------------------------\n"
-            ) % (end_time)
-            print(str)
+            start_finite_DES(rho)
 
     return
 
