@@ -138,7 +138,7 @@ class DES:
             data["counter_packets_in_queue_list"])
         idle_time_proportion = data["counter_idle"] / \
             data["counter_observer"]
-        packets_loss_probability = data["counter_dropped_packets"] / \
+        packet_loss_probability = data["counter_dropped_packets"] / \
             data["counter_total_packets"]
 
         return {
@@ -146,7 +146,7 @@ class DES:
             "rho": self.__rho,
             "packets_in_queue_avg": packets_in_queue_avg,
             "idle_time_proportion": idle_time_proportion,
-            "packets_loss_probability": packets_loss_probability
+            "packet_loss_probability": packet_loss_probability
         }
 
     def __process_events(self, events):
@@ -263,7 +263,7 @@ class DES:
             "Packets in Queue Avg:    %.10f\n"
             "Idle Time Proportion:    %.10f\n"
             "Packet Loss Probability: %.10f\n\n"
-        ) % (metrics["packets_in_queue_avg"], metrics["idle_time_proportion"], metrics["packets_loss_probability"])
+        ) % (metrics["packets_in_queue_avg"], metrics["idle_time_proportion"], metrics["packet_loss_probability"])
 
         end_time = datetime.now().time()
         str += (
