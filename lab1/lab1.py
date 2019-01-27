@@ -142,6 +142,8 @@ class DES:
             data["counter_total_packets"]
 
         return {
+            "buffer_size": self.__buffer_size,
+            "rho": self.__rho,
             "packets_in_queue_avg": packets_in_queue_avg,
             "idle_time_proportion": idle_time_proportion,
             "packets_loss_probability": packets_loss_probability
