@@ -1,3 +1,4 @@
+import csv
 import heapq
 import math
 import random
@@ -296,6 +297,22 @@ def start_DES(lock, packet_length_avg, trans_rate, sim_time, buffer_size, rho):
     return res[0]
 
 
+def write_to_csv(fields, headers, rows):
+    timestamp = time.time() * 1000
+    filename = ("lab1_output_%s.csv") % (round(timestamp))
+
+    with open(filename, "w") as csvfile:
+        csvwriter = csv.DictWriter(csvfile, fields)
+        csvwriter.writerow(headers)
+        csvwriter.writerows(rows)
+
+    str = (
+        "Created CSV File %s\n\n"
+        "------------------------------------------------------\n"
+    ) % (filename)
+    print(str)
+
+
 def main():
     start_time = time.time()
 
@@ -309,27 +326,46 @@ def main():
     lock = manager.Lock()
     pool = Pool(5)
 
+    fields = [
+        "buffer_size",
+        "rho",
+        "packets_in_queue_avg",
+        "idle_time_proportion",
+        "packet_loss_probability"
+    ]
+    headers = {
+        "buffer_size": "Buffer Size",
+        "rho": "Queue Utilization (rho)",
+        "packets_in_queue_avg": "Average Packets in Queue",
+        "idle_time_proportion": "Idle Time Proportion",
+        "packet_loss_probability": "Packet Loss Probability"
+    }
+    rows = []
+
     # infinite buffer size
-    rho_list_inf = [0.25 + 0.1*i for i in range(8)] + [1.2]
+    rho_list_inf = [round(0.25 + 0.1*i, 2) for i in range(8)] + [1.2]
     start_inf_DES = partial(start_DES, lock, packet_length_avg,
                             trans_rate, sim_time, float("inf"))
 
-    pool.map(start_inf_DES, rho_list_inf)
+    rows += pool.map(start_inf_DES, rho_list_inf)
 
     # finite buffer size
     buffer_size_list = [10, 25, 50]
-    rho_list_finite = [0.5 + 0.1*i for i in range(11)]
+    rho_list_finite = [round(0.5 + 0.1*i, 1) for i in range(11)]
 
     for buffer_size in buffer_size_list:
         start_finite_DES = partial(start_DES, lock, packet_length_avg,
                                    trans_rate, sim_time, buffer_size)
 
-        pool.map(start_finite_DES, rho_list_finite)
+        rows += pool.map(start_finite_DES, rho_list_finite)
+
+    write_to_csv(fields, headers, rows)
 
     end_time = time.time()
 
     str = (
-        "Execution Time: %s seconds\n"
+        "Execution Time: %s seconds\n\n"
+        "------------------------------------------------------\n"
     ) % (end_time - start_time)
     print(str)
 
