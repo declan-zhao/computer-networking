@@ -71,7 +71,7 @@ class DES:
             current_time += observer_event_interval
 
             if current_time <= self.__sim_time:
-                observer_events.append((current_time, self.__EVENT_OBSERVER))
+                observer_events.append((current_time, DES.__EVENT_OBSERVER))
 
                 if __debug__:
                     counter += 1
@@ -100,7 +100,7 @@ class DES:
             current_time += arrival_event_interval
 
             if current_time <= self.__sim_time:
-                arrival_events.append((current_time, self.__EVENT_ARRIVAL))
+                arrival_events.append((current_time, DES.__EVENT_ARRIVAL))
 
                 if __debug__:
                     counter += 1
@@ -174,14 +174,14 @@ class DES:
         while events:
             event = heapq.heappop(events)
 
-            if event[1] == self.__EVENT_DEPARTURE:
+            if event[1] == DES.__EVENT_DEPARTURE:
                 counter_departure += 1
                 counter_packets_in_queue -= 1
 
                 if __debug__:
                     if counter_packets_in_queue < 0:
                         print("Error: Negative Packets Counter!")
-            elif event[1] == self.__EVENT_ARRIVAL:
+            elif event[1] == DES.__EVENT_ARRIVAL:
                 counter_total_packets += 1
 
                 if counter_packets_in_queue < self.__buffer_size:
@@ -205,7 +205,7 @@ class DES:
                     latest_departure_time = departure_time
 
                     heapq.heappush(
-                        events, (departure_time, self.__EVENT_DEPARTURE))
+                        events, (departure_time, DES.__EVENT_DEPARTURE))
 
                     counter_packets_in_queue += 1
                 else:
