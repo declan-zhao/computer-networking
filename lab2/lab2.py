@@ -4,7 +4,6 @@ import random
 import time
 from collections import deque
 from datetime import datetime
-from functools import partial
 from multiprocessing import Manager, Pool
 
 
@@ -68,13 +67,22 @@ class Node:
 
         return backoff_interval
 
+    # def __calculate_wait_backoff_time(self):
+    #     self.__wait_counter += 1
+
+    #     if self.__wait_counter > Node.__BACKOFF_MAX:
+    #         self.__pop_and_reset()
+
+    #         return None
+
+    #     r = Node.__generate_backoff_random(self.__wait_counter)
+    #     backoff_interval = r * 512 / self.__trans_rate
+
+    #     return backoff_interval
+
     def __calculate_wait_backoff_time(self):
-        self.__wait_counter += 1
-
-        if self.__wait_counter > Node.__BACKOFF_MAX:
-            self.__pop_and_reset()
-
-            return None
+        if self.__wait_counter < Node.__BACKOFF_MAX:
+            self.__wait_counter += 1
 
         r = Node.__generate_backoff_random(self.__wait_counter)
         backoff_interval = r * 512 / self.__trans_rate
@@ -181,8 +189,8 @@ class DES:
 
         return {
             "is_persistent": self.__is_persistent,
-            "node_num": self.__node_num,
             "arrival_rate_avg": self.__arrival_rate_avg,
+            "node_num": self.__node_num,
             "efficiency": efficiency,
             "throughput": throughput
         }
@@ -256,10 +264,10 @@ class DES:
         str = (
             "Simulation with\n"
             "Persistent Mode:    %s\n"
-            "Number of Nodes:    %s\n"
-            "Arrival Rate Avg:   %s\n\n"
+            "Arrival Rate Avg:   %s\n"
+            "Number of Nodes:    %s\n\n"
             "Start Time:         %s\n\n"
-        ) % (self.__is_persistent, self.__node_num, self.__arrival_rate_avg, start_time)
+        ) % (self.__is_persistent, self.__arrival_rate_avg, self.__node_num, start_time)
 
         data = self.__process_events()
         metrics = self.__calculate_metrics(data)
@@ -278,12 +286,11 @@ class DES:
         return [metrics, str]
 
 
-def start_DES(node_num, **kwargs):
-    DES_instance = DES(node_num, kwargs["arrival_rate_avg"], kwargs["trans_rate"],
-                       kwargs["packet_length"], kwargs["node_distance"], kwargs["prop_speed"], kwargs["sim_time"], kwargs["is_persistent"])
+def start_DES(lock, node_num, arrival_rate_avg, trans_rate, packet_length, node_distance, prop_speed, sim_time, is_persistent):
+    DES_instance = DES(node_num, arrival_rate_avg, trans_rate,
+                       packet_length, node_distance, prop_speed, sim_time, is_persistent)
     res = DES_instance.sim()
 
-    lock = kwargs["lock"]
     lock.acquire()
 
     try:
@@ -321,42 +328,36 @@ def main():
 
     manager = Manager()
     lock = manager.Lock()
-    pool = Pool(5)
+    pool = Pool(8)
 
     fields = [
         "is_persistent",
-        "node_num",
         "arrival_rate_avg",
+        "node_num",
         "efficiency",
         "throughput"
     ]
     headers = {
         "is_persistent": "Persistent Mode",
-        "node_num": "Number of Nodes",
         "arrival_rate_avg": "Average Arrival Rate (packets/s)",
+        "node_num": "Number of Nodes",
         "efficiency": "CSMA/CD Efficiency",
         "throughput": "CSMA/CD Throughput (Mbps)"
     }
-    rows = []
 
-    node_num_list = [20 * k for k in range(1, 6)]
-    arrival_rate_avg_list = [7, 10, 20]
+    node_num_list = [20 * (5 - k) for k in range(5)]
+    arrival_rate_avg_list = [20, 10, 7]
 
-    # persistent mode
-    is_persistent = True
-    for arrival_rate_avg in arrival_rate_avg_list:
-        start_p_DES = partial(start_DES, lock=lock, arrival_rate_avg=arrival_rate_avg, trans_rate=trans_rate, packet_length=packet_length,
-                              node_distance=node_distance, prop_speed=prop_speed, sim_time=sim_time, is_persistent=is_persistent)
+    params_list = [(lock, node_num, arrival_rate_avg, trans_rate, packet_length, node_distance, prop_speed, sim_time, is_persistent)
+                   for node_num in node_num_list for arrival_rate_avg in arrival_rate_avg_list for is_persistent in [True, False]]
 
-        rows += pool.map(start_p_DES, node_num_list)
+    async_result = pool.starmap_async(start_DES, params_list)
 
-    # non-persistent mode
-    is_persistent = False
-    for arrival_rate_avg in arrival_rate_avg_list:
-        start_np_DES = partial(start_DES, lock=lock, arrival_rate_avg=arrival_rate_avg, trans_rate=trans_rate, packet_length=packet_length,
-                               node_distance=node_distance, prop_speed=prop_speed, sim_time=sim_time, is_persistent=is_persistent)
+    pool.close()
+    pool.join()
 
-        rows += pool.map(start_np_DES, node_num_list)
+    rows = sorted(async_result.get(), key=lambda row: (
+        -row["is_persistent"], row["arrival_rate_avg"], row["node_num"]))
 
     write_to_csv(fields, headers, rows)
 
