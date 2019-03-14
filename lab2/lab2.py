@@ -47,8 +47,7 @@ class Node:
         self.__is_persistent = is_persistent
         self.__collision_counter = 0
         self.__wait_counter = 0
-        self.__updated_arrival_time = self.__packets[0] if len(
-            self.__packets) > 0 else -1.0
+        self.__updated_arrival_time = -1.0
 
     @staticmethod
     def __generate_backoff_random(k):
@@ -67,19 +66,6 @@ class Node:
 
         return backoff_interval
 
-    # def __calculate_wait_backoff_time(self):
-    #     self.__wait_counter += 1
-
-    #     if self.__wait_counter > Node.__BACKOFF_MAX:
-    #         self.__pop_and_reset()
-
-    #         return None
-
-    #     r = Node.__generate_backoff_random(self.__wait_counter)
-    #     backoff_interval = r * 512 / self.__trans_rate
-
-    #     return backoff_interval
-
     def __calculate_wait_backoff_time(self):
         if self.__wait_counter < Node.__BACKOFF_MAX:
             self.__wait_counter += 1
@@ -91,7 +77,6 @@ class Node:
 
     def __pop_and_reset(self):
         self.__reset_collision_counter()
-        self.__reset_wait_counter()
         self.__popleft_packet()
 
     def __popleft_packet(self):
@@ -117,15 +102,11 @@ class Node:
             self.__updated_arrival_time = max(
                 self.updated_first_packet_arrival_time, busy_end_time)
         else:
-            # non-persistent mode
+            # non-persistent mode and not sender node
             while True:
                 if self.updated_first_packet_arrival_time < busy_end_time:
                     backoff_interval = self.__calculate_wait_backoff_time()
-
-                    if backoff_interval is not None:
-                        self.__updated_arrival_time = self.updated_first_packet_arrival_time + backoff_interval
-                    else:
-                        break
+                    self.__updated_arrival_time = self.updated_first_packet_arrival_time + backoff_interval
                 else:
                     self.__reset_wait_counter()
                     break
@@ -143,14 +124,12 @@ class Node:
 
         return is_colliding
 
-    def reschedule_collision(self, current_sim_time):
+    def reschedule_collision(self):
         backoff_interval = self.__calculate_collision_backoff_time()
 
         if backoff_interval is not None:
-            retry_time = current_sim_time + backoff_interval
             # reschedule arrival time
-            self.__updated_arrival_time = max(
-                self.updated_first_packet_arrival_time, retry_time)
+            self.__updated_arrival_time = self.updated_first_packet_arrival_time + backoff_interval
 
     def transmission_success(self):
         self.__pop_and_reset()
@@ -229,10 +208,10 @@ class DES:
                     if is_node_colliding:
                         is_colliding = True
                         total_transmission_counter += 1
-                        node.reschedule_collision(current_sim_time)
+                        node.reschedule_collision()
 
             if is_colliding:
-                sender_node.reschedule_collision(current_sim_time)
+                sender_node.reschedule_collision()
             else:
                 # no collision
                 successful_transmission_counter += 1
@@ -241,16 +220,6 @@ class DES:
                 for node in nodes:
                     node.reschedule_busy_bus(
                         sender_node.id, current_sim_time)
-
-        if __debug__:
-            str = (
-                "Successful Transmission Counter: %d\n"
-                "Total Transmission Counter:      %d\n"
-                "CSMA/CD Efficiency:              %f\n"
-                "CSMA/CD Throughput:              %f Mbps\n"
-                "Simulation Time:                 %f\n"
-            ) % (successful_transmission_counter, total_transmission_counter, successful_transmission_counter / total_transmission_counter, successful_transmission_counter * self.__packet_length / (self.__sim_time * 10**6), self.__sim_time)
-            print(str)
 
         return {
             "successful_transmission_counter": successful_transmission_counter,
